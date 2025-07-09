@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown } from 'lucide-react'
+import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown, Send } from 'lucide-react'
 import SecurePasswordGenerator from './securePasswordGenerator.js'
 import MemorablePasswordGenerator from './memorablePasswordGenerator.js'
 import storageManager, { STORAGE_KEYS } from './storageUtils.js'
@@ -9,6 +9,8 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('random')
   const [copied, setCopied] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [autoFilled, setAutoFilled] = useState(false)
+  const [autoFillMessage, setAutoFillMessage] = useState('')
   
   // Random password settings
   const [length, setLength] = useState(20)
@@ -195,6 +197,35 @@ const App = () => {
     }
   }
 
+  const autoFillPassword = async () => {
+    if (!password) return
+    
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'fillPassword',
+        password: password
+      })
+      
+      if (response.success) {
+        setAutoFilled(true)
+        setAutoFillMessage(response.message)
+        setTimeout(() => {
+          setAutoFilled(false)
+          setAutoFillMessage('')
+        }, 3000)
+      } else {
+        setAutoFillMessage(response.message)
+        setTimeout(() => setAutoFillMessage(''), 3000)
+      }
+    } catch (err) {
+      console.error('Failed to auto-fill password:', err)
+      setAutoFillMessage('Failed to auto-fill password')
+      setTimeout(() => setAutoFillMessage(''), 3000)
+    }
+  }
+
   const getStrengthForCurrentType = () => {
     if (!password) return { score: 0, label: 'None', entropy: 0 }
     
@@ -272,6 +303,7 @@ const App = () => {
           {includeSymbols && (
             <div className="symbol-options">
               <div className="symbol-selector">
+                <label className="symbol-selector-label">Symbol Set</label>
                 <button 
                   className="symbol-dropdown-trigger"
                   onClick={() => setShowSymbolOptions(!showSymbolOptions)}
@@ -303,6 +335,7 @@ const App = () => {
               
               {symbolSet === 'custom' && (
                 <div className="custom-symbols">
+                  <label className="custom-symbols-label">Custom Symbols</label>
                   <input
                     type="text"
                     placeholder="Enter custom symbols"
@@ -430,6 +463,10 @@ const App = () => {
             <Copy size={14} />
             Copy password
           </button>
+          <button className="autofill-button" onClick={autoFillPassword} disabled={!password}>
+            <Send size={14} />
+            Auto-fill
+          </button>
           <button className="refresh-button" onClick={generatePassword}>
             <RefreshCw size={14} />
             Refresh password
@@ -439,6 +476,18 @@ const App = () => {
         {copied && (
           <div className="success-message">
             Password copied to clipboard!
+          </div>
+        )}
+        
+        {autoFilled && (
+          <div className="success-message">
+            {autoFillMessage}
+          </div>
+        )}
+        
+        {!autoFilled && autoFillMessage && (
+          <div className="error-message">
+            {autoFillMessage}
           </div>
         )}
       </div>
