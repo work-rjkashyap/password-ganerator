@@ -9,18 +9,38 @@ class MemorablePasswordGenerator {
       'phoenix', 'quartz', 'rocket', 'silver', 'tiger', 'umbrella', 'volcano', 'warrior',
       'crystal', 'breeze', 'storm', 'flower', 'river', 'star', 'moon', 'fire', 'water',
       'earth', 'wind', 'light', 'shadow', 'dream', 'spirit', 'power', 'magic', 'truth',
-      'peace', 'love', 'hope', 'joy', 'freedom', 'wisdom', 'courage', 'strength', 'honor'
+      'peace', 'love', 'hope', 'joy', 'freedom', 'wisdom', 'courage', 'strength', 'honor',
+        'trust', 'friendship', 'adventure', 'journey', 'exploration', 'discovery', 'imagination',
+        'creativity', 'innovation', 'passion', 'inspiration', 'dedication', 'perseverance', 'resilience', 'gratitude',
+        'kindness', 'compassion', 'empathy', 'unity', 'diversity', 'harmony', 'balance', 'serenity',
+        'tranquility', 'joyful', 'playful', 'thoughtful', 'mindful', 'graceful', 'fearless', 'hopeful', 'radiant',
+        'vibrant', 'dynamic', 'energetic', 'enthusiastic', 'optimistic', 'confident', 'determined', 'ambitious', 'resourceful',
+        'adaptable', 'flexible', 'open-minded', 'curious', 'explorative', 'inventive', 'original', 'unique', 'authentic', 'genuine',
+        'sincere', 'honest', 'transparent', 'respectful', 'supportive', 'encouraging', 'uplifting', 'motivating', 'empowering', 'influential',
+        'charismatic', 'charming', 'captivating', 'engaging', 'entertaining', 'enlightening', 'educational', 'informative', 'insightful', 'thought-provoking', 'stimulating', 'challenging', 'rewarding', 'fulfilling', 'satisfying', 'enriching', 'transformative',
+        'life-changing', 'mind-expanding', 'perspective-shifting', 'worldview-altering', 'paradigm-shifting', 'revolutionary', 'groundbreaking', 'pioneering', 'trailblazing', 'path-breaking', 'innovative', 'cutting-edge', 'state-of-the-art', 'advanced', 'progressive', 'forward-thinking'
     ]
-    
+
     this.adjectives = [
       'bright', 'swift', 'strong', 'gentle', 'brave', 'wise', 'cool', 'warm', 'dark',
       'light', 'fast', 'slow', 'big', 'small', 'loud', 'quiet', 'smooth', 'rough',
       'sharp', 'soft', 'hard', 'easy', 'tough', 'sweet', 'sour', 'hot', 'cold',
       'fresh', 'old', 'new', 'clean', 'dirty', 'rich', 'poor', 'happy', 'sad',
       'angry', 'calm', 'wild', 'tame', 'free', 'bound', 'open', 'closed', 'clear',
-      'cloudy', 'sunny', 'rainy', 'snowy', 'windy', 'still', 'moving', 'stable'
+      'cloudy', 'sunny', 'rainy', 'snowy', 'windy', 'still', 'moving', 'stable',
+        'shaky', 'solid', 'liquid', 'gaseous', 'frozen', 'melting', 'burning', 'cooling',
+        'shining', 'glowing', 'flickering', 'blinking', 'radiant', 'dull', 'vivid', 'faded',
+        'colorful', 'monochrome', 'vibrant', 'muted', 'bold', 'subtle', 'elegant', 'simple',
+        'complex', 'intricate', 'plain', 'ornate', 'modern', 'classic', 'timeless', 'trendy',
+        'futuristic', 'retro', 'vintage', 'rustic', 'urban', 'rural', 'cosmopolitan', 'provincial',
+        'metropolitan', 'suburban', 'industrial', 'commercial', 'residential', 'institutional', 'educational', 'cultural', 'recreational', 'natural', 'artificial', 'organic', 'synthetic',
+        'biological', 'technological', 'digital', 'analog', 'virtual', 'augmented', 'immersive', 'interactive', 'static', 'dynamic',
+        'responsive', 'adaptive', 'intuitive', 'user-friendly', 'accessible', 'inclusive', 'diverse', 'multicultural', 'global', 'local', 'regional', 'national', 'international', 'transnational', 'cross-cultural', 'intercultural', 'multilingual', 'bilingual', 'monolingual', 'polyglot', 'linguistic', 'cognitive', 'psychological', 'emotional', 'social', 'cultural',
+      'spiritual', 'philosophical', 'ethical', 'moral', 'aesthetic', 'artistic', 'creative', 'imaginative', 'innovative', 'inventive', 'original', 'unique', 'authentic', 'genuine', 'sincere', 'honest', 'transparent', 'respectful', 'supportive', 'encouraging', 'uplifting', 'motivating', 'inspiring', 'empowering', 'influential', 'charismatic', 'charming', 'captivating', 'engaging',
+      'entertaining', 'enlightening', 'educational', 'informative', 'insightful', 'thought-provoking', 'stimulating', 'challenging', 'rewarding', 'fulfilling', 'satisfying', 'enriching', 'transformative',
+      'life-changing'
     ]
-    
+
     this.separators = ['-', '_', '.', '!', '@', '#', '$', '%', '^', '&', '*']
   }
 
@@ -47,13 +67,13 @@ class MemorablePasswordGenerator {
       const words = this.selectWords(wordCount, includeCapitalization)
       const separator = this.getSeparator(separatorType)
       const numbers = includeNumbers ? this.getRandomNumbers() : ''
-      
+
       password = words.join(separator) + numbers
-      
+
       if (password.length >= minLength && password.length <= maxLength) {
         break
       }
-      
+
       attempts++
     }
 
@@ -68,24 +88,24 @@ class MemorablePasswordGenerator {
    */
   selectWords(count, includeCapitalization) {
     const selectedWords = []
-    
+
     for (let i = 0; i < count; i++) {
       let word
-      
+
       if (i === 0 && Math.random() < 0.5) {
         // Sometimes start with an adjective
         word = this.getRandomWord(this.adjectives)
       } else {
         word = this.getRandomWord(this.words)
       }
-      
+
       if (includeCapitalization) {
         word = this.capitalizeWord(word)
       }
-      
+
       selectedWords.push(word)
     }
-    
+
     return selectedWords
   }
 
@@ -110,7 +130,7 @@ class MemorablePasswordGenerator {
     const array = new Uint32Array(1)
     crypto.getRandomValues(array)
     const random = array[0] % 3
-    
+
     if (random === 0) {
       return word.charAt(0).toUpperCase() + word.slice(1)
     } else if (random === 1) {
@@ -129,7 +149,7 @@ class MemorablePasswordGenerator {
     if (separatorType === 'none') return ''
     if (separatorType === 'dash') return '-'
     if (separatorType === 'underscore') return '_'
-    
+
     // Random separator
     const array = new Uint32Array(1)
     crypto.getRandomValues(array)
@@ -145,14 +165,14 @@ class MemorablePasswordGenerator {
     const array = new Uint32Array(1)
     crypto.getRandomValues(array)
     const numberCount = (array[0] % 3) + 1 // 1-3 numbers
-    
+
     let numbers = ''
     for (let i = 0; i < numberCount; i++) {
       const digitArray = new Uint32Array(1)
       crypto.getRandomValues(digitArray)
       numbers += (digitArray[0] % 10).toString()
     }
-    
+
     return numbers
   }
 
@@ -224,7 +244,7 @@ class MemorablePasswordGenerator {
     else score = 5
 
     const labels = ['None', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
-    
+
     return {
       score,
       label: labels[score],

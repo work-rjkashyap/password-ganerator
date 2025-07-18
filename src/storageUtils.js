@@ -12,7 +12,8 @@ const STORAGE_KEYS = {
   CUSTOM_SYMBOLS: 'customSymbols',
   WORD_COUNT: 'wordCount',
   INCLUDE_CAPITALIZATION: 'includeCapitalization',
-  PIN_LENGTH: 'pinLength'
+  PIN_LENGTH: 'pinLength',
+  PASSWORD_HISTORY: 'passwordHistory'
 }
 
 const DEFAULT_SETTINGS = {
@@ -25,7 +26,8 @@ const DEFAULT_SETTINGS = {
   [STORAGE_KEYS.CUSTOM_SYMBOLS]: '',
   [STORAGE_KEYS.WORD_COUNT]: 3,
   [STORAGE_KEYS.INCLUDE_CAPITALIZATION]: true,
-  [STORAGE_KEYS.PIN_LENGTH]: 4
+  [STORAGE_KEYS.PIN_LENGTH]: 4,
+  [STORAGE_KEYS.PASSWORD_HISTORY]: []
 }
 
 class StorageManager {
@@ -196,6 +198,124 @@ class StorageManager {
         callback(changes)
       }
     })
+  }
+
+  /**
+   * Add a password action to history
+   * @param {string} action - Action type ('copy' or 'autofill')
+   * @param {string} passwordType - Type of password ('random', 'memorable', 'pin')
+   * @param {string} website - Website URL where action occurred
+   * @param {number} passwordLength - Length of the password
+   */
+  async addPasswordHistory(action, passwordType, website = '', passwordLength = 0) {
+    try {
+      const currentHistory = await this.getSetting(STORAGE_KEYS.PASSWORD_HISTORY)
+      const historyEntry = {
+        id: Date.now() + Math.random(), // Unique ID
+        action,
+        passwordType,
+        website,
+        passwordLength,
+        timestamp: new Date().toISOString(),
+        domain: website ? new URL(website).hostname : ''
+      }
+
+      // Add to beginning of array and limit to 100 entries
+      const updatedHistory = [historyEntry, ...currentHistory].slice(0, 100)
+      
+      await this.setSetting(STORAGE_KEYS.PASSWORD_HISTORY, updatedHistory)
+      return historyEntry
+    } catch (error) {
+      console.error('Error adding password history:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get password history
+   * @param {number} limit - Maximum number of entries to return
+   * @returns {Promise<Array>} - Array of history entries
+   */
+  async getPasswordHistory(limit = 50) {
+    try {
+      const history = await this.getSetting(STORAGE_KEYS.PASSWORD_HISTORY)
+      return Array.isArray(history) ? history.slice(0, limit) : []
+    } catch (error) {
+      console.error('Error getting password history:', error)
+      return []
+    }
+  }
+
+  /**
+   * Clear password history
+   */
+  async clearPasswordHistory() {
+    try {
+      await this.setSetting(STORAGE_KEYS.PASSWORD_HISTORY, [])
+    } catch (error) {
+      console.error('Error clearing password history:', error)
+    }
+  }
+
+  /**
+   * Remove a specific history entry
+   * @param {string|number} entryId - ID of the entry to remove
+   */
+  async removePasswordHistoryEntry(entryId) {
+    try {
+      const currentHistory = await this.getSetting(STORAGE_KEYS.PASSWORD_HISTORY)
+      const updatedHistory = currentHistory.filter(entry => entry.id !== entryId)
+      await this.setSetting(STORAGE_KEYS.PASSWORD_HISTORY, updatedHistory)
+    } catch (error) {
+      console.error('Error removing password history entry:', error)
+    }
+  }
+
+  /**
+   * Get password history statistics
+   * @returns {Promise<Object>} - Statistics object
+   */
+  async getPasswordHistoryStats() {
+    try {
+      const history = await this.getSetting(STORAGE_KEYS.PASSWORD_HISTORY)
+      const stats = {
+        total: history.length,
+        copyCount: 0,
+        autofillCount: 0,
+        topWebsites: {},
+        passwordTypes: { random: 0, memorable: 0, pin: 0 },
+        lastSevenDays: 0
+      }
+
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+      history.forEach(entry => {
+        // Count actions
+        if (entry.action === 'copy') stats.copyCount++
+        if (entry.action === 'autofill') stats.autofillCount++
+
+        // Count password types
+        if (stats.passwordTypes[entry.passwordType] !== undefined) {
+          stats.passwordTypes[entry.passwordType]++
+        }
+
+        // Count websites
+        if (entry.domain) {
+          stats.topWebsites[entry.domain] = (stats.topWebsites[entry.domain] || 0) + 1
+        }
+
+        // Count recent actions
+        if (new Date(entry.timestamp) > sevenDaysAgo) {
+          stats.lastSevenDays++
+        }
+      })
+
+      return stats
+    } catch (error) {
+      console.error('Error getting password history stats:', error)
+      return { total: 0, copyCount: 0, autofillCount: 0, topWebsites: {}, passwordTypes: { random: 0, memorable: 0, pin: 0 }, lastSevenDays: 0 }
+    }
   }
 }
 

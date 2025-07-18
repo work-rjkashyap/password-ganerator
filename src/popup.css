@@ -615,3 +615,339 @@ body {
     height: 28px;
   }
 }
+
+/* History Panel Styles */
+.header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.history-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.history-toggle:hover {
+  background: var(--background-color);
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.history-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card-background);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-background);
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.export-history-btn,
+.clear-history-btn,
+.close-history-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.export-history-btn:hover {
+  background: #e8f5e8;
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+.clear-history-btn:hover {
+  background: #ffebee;
+  border-color: #d32f2f;
+  color: #d32f2f;
+}
+
+.close-history-btn:hover {
+  background: var(--background-color);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.history-stats {
+  padding: var(--spacing-lg);
+  background: var(--secondary-blue);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stat-row {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.stat-label {
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+}
+
+.empty-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-muted);
+  min-height: 200px;
+}
+
+.empty-history p {
+  margin: var(--spacing-sm) 0;
+  font-size: 14px;
+}
+
+.empty-history p:first-of-type {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.history-item:hover {
+  background: var(--background-color);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--secondary-blue);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-blue);
+}
+
+.history-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}
+
+.history-item-action {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.action-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.action-badge.copy {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.action-badge.autofill {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.password-type {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.password-length {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-item-website {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.website-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.no-website {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.history-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
+}
+
+.history-item-time {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.remove-entry-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-muted);
+  opacity: 0;
+}
+
+.history-item:hover .remove-entry-btn {
+  opacity: 1;
+}
+
+.remove-entry-btn:hover {
+  background: #ffebee;
+  border-color: #d32f2f;
+  color: #d32f2f;
+}
+
+[data-theme="dark"] .action-badge.copy {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+[data-theme="dark"] .action-badge.autofill {
+  background: #0d47a1;
+  color: #90caf9;
+}
+
+[data-theme="dark"] .export-history-btn:hover {
+  background: #1a3a1a;
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+[data-theme="dark"] .clear-history-btn:hover {
+  background: #3a1a1a;
+  border-color: #f44336;
+  color: #f44336;
+}
+
+[data-theme="dark"] .remove-entry-btn:hover {
+  background: #3a1a1a;
+  border-color: #f44336;
+  color: #f44336;
+}
