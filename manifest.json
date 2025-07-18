@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "SecurePass Generator",
-    "version": "1.1",
+    "version": "1.2.0",
     "description": "Generate ultra-secure passwords instantly with customizable options",
     "permissions": [
         "clipboardWrite",
