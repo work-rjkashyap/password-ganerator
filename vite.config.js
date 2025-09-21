@@ -1,8 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  css: {
+    devSourcemap: false
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -15,6 +20,11 @@ export default defineConfig({
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]'
       }
+    }
+  },
+  resolve :{
+    alias: {
+      '@': path.resolve(__dirname, 'src')
     }
   }
 })

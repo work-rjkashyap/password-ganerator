@@ -142,12 +142,14 @@ The extension uses a comprehensive scoring system:
 password-generator-extension/
 ├── src/
 │   ├── App.jsx                          # Main React component with UI logic
-│   ├── popup.css                        # Comprehensive styling with dark mode
+│   ├── styles/tailwind.css              # Tailwind source and component styles
 │   ├── securePasswordGenerator.js       # Random password generation engine
 │   ├── memorablePasswordGenerator.js    # Word-based password generation
 │   └── storageUtils.js                  # Chrome storage utilities
 ├── public/
 │   └── popup.html                       # Extension popup HTML template
+├── dist/
+│   └── popup.css                        # Built CSS included in the extension (generated at build time)
 ├── manifest.json                        # Chrome extension manifest (V3)
 ├── package.json                         # Dependencies and build scripts
 ├── vite.config.js                       # Vite build configuration

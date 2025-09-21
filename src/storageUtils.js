@@ -13,7 +13,10 @@ const STORAGE_KEYS = {
   WORD_COUNT: 'wordCount',
   INCLUDE_CAPITALIZATION: 'includeCapitalization',
   PIN_LENGTH: 'pinLength',
-  PASSWORD_HISTORY: 'passwordHistory'
+  PASSWORD_HISTORY: 'passwordHistory',
+  HISTORY_ENABLED: 'historyEnabled',
+  HISTORY_CLEAR_ON_CLOSE: 'historyClearOnClose'
+  ,HISTORY_PENDING_CLEAR: 'historyPendingClear'
 }
 
 const DEFAULT_SETTINGS = {
@@ -27,7 +30,10 @@ const DEFAULT_SETTINGS = {
   [STORAGE_KEYS.WORD_COUNT]: 3,
   [STORAGE_KEYS.INCLUDE_CAPITALIZATION]: true,
   [STORAGE_KEYS.PIN_LENGTH]: 4,
-  [STORAGE_KEYS.PASSWORD_HISTORY]: []
+  [STORAGE_KEYS.PASSWORD_HISTORY]: [],
+  [STORAGE_KEYS.HISTORY_ENABLED]: true,
+  [STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE]: false
+  ,[STORAGE_KEYS.HISTORY_PENDING_CLEAR]: false
 }
 
 class StorageManager {
@@ -48,16 +54,34 @@ class StorageManager {
    * @returns {Promise<any>} - Setting value or default
    */
   async getSetting(key) {
+    // Prefer chrome.storage when available but fall back to localStorage synchronously
     if (!this.isAvailable()) {
-      return DEFAULT_SETTINGS[key]
+      try {
+        const raw = localStorage.getItem(key)
+        return raw !== null ? JSON.parse(raw) : DEFAULT_SETTINGS[key]
+      } catch (e) {
+        return DEFAULT_SETTINGS[key]
+      }
     }
 
     try {
       const result = await this.storage.get(key)
-      return result[key] !== undefined ? result[key] : DEFAULT_SETTINGS[key]
+      if (result[key] !== undefined) return result[key]
+      // If chrome storage didn't return a value, fall back to localStorage if present
+      try {
+        const raw = localStorage.getItem(key)
+        return raw !== null ? JSON.parse(raw) : DEFAULT_SETTINGS[key]
+      } catch (e) {
+        return DEFAULT_SETTINGS[key]
+      }
     } catch (error) {
       console.error('Error getting setting:', error)
-      return DEFAULT_SETTINGS[key]
+      try {
+        const raw = localStorage.getItem(key)
+        return raw !== null ? JSON.parse(raw) : DEFAULT_SETTINGS[key]
+      } catch (e) {
+        return DEFAULT_SETTINGS[key]
+      }
     }
   }
 
@@ -106,18 +130,22 @@ class StorageManager {
    * @param {any} value - Value to store
    */
   async setSetting(key, value) {
+    // Always mirror to localStorage so we have a synchronous copy usable during unload
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
     if (!this.isAvailable()) {
       console.warn('Chrome storage not available, using localStorage fallback')
-      localStorage.setItem(key, JSON.stringify(value))
       return
     }
 
     try {
       await this.storage.set({ [key]: value })
     } catch (error) {
-      console.error('Error setting value:', error)
-      // Fallback to localStorage
-      localStorage.setItem(key, JSON.stringify(value))
+      console.error('Error setting value in chrome.storage:', error)
     }
   }
 
@@ -126,22 +154,24 @@ class StorageManager {
    * @param {Object} settings - Settings object to store
    */
   async setSettings(settings) {
-    if (!this.isAvailable()) {
-      console.warn('Chrome storage not available, using localStorage fallback')
+    // Mirror to localStorage synchronously
+    try {
       Object.entries(settings).forEach(([key, value]) => {
         localStorage.setItem(key, JSON.stringify(value))
       })
+    } catch (e) {
+      // ignore
+    }
+
+    if (!this.isAvailable()) {
+      console.warn('Chrome storage not available, using localStorage fallback')
       return
     }
 
     try {
       await this.storage.set(settings)
     } catch (error) {
-      console.error('Error setting settings:', error)
-      // Fallback to localStorage
-      Object.entries(settings).forEach(([key, value]) => {
-        localStorage.setItem(key, JSON.stringify(value))
-      })
+      console.error('Error setting settings in chrome.storage:', error)
     }
   }
 
@@ -207,8 +237,12 @@ class StorageManager {
    * @param {string} website - Website URL where action occurred
    * @param {number} passwordLength - Length of the password
    */
-  async addPasswordHistory(action, passwordType, website = '', passwordLength = 0) {
+  async addPasswordHistory(action, passwordType, website = '', passwordLength = 0, passwordEnc = null) {
     try {
+      // Respect user privacy setting: don't store history if disabled
+      const historyEnabled = await this.getSetting(STORAGE_KEYS.HISTORY_ENABLED)
+      if (historyEnabled === false) return null
+
       const currentHistory = await this.getSetting(STORAGE_KEYS.PASSWORD_HISTORY)
       const historyEntry = {
         id: Date.now() + Math.random(), // Unique ID
@@ -217,12 +251,13 @@ class StorageManager {
         website,
         passwordLength,
         timestamp: new Date().toISOString(),
-        domain: website ? new URL(website).hostname : ''
+        domain: website ? new URL(website).hostname : '',
+        passwordEnc: passwordEnc || null
       }
 
       // Add to beginning of array and limit to 100 entries
       const updatedHistory = [historyEntry, ...currentHistory].slice(0, 100)
-      
+
       await this.setSetting(STORAGE_KEYS.PASSWORD_HISTORY, updatedHistory)
       return historyEntry
     } catch (error) {

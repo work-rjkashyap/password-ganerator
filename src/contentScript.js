@@ -34,11 +34,12 @@ function fillPasswordFields(password) {
   const fields = findPasswordFields();
   
   if (fields.length === 0) {
-    return { success: false, message: 'No password fields found on this page' };
+    return { success: false, message: 'No password fields found on this page', fieldsCount: 0, domain: location.hostname };
   }
 
   let filledCount = 0;
   
+  const filledSelectors = []
   fields.forEach(field => {
     if (field.disabled || field.readOnly) {
       return;
@@ -64,14 +65,19 @@ function fillPasswordFields(password) {
     setTimeout(() => {
       field.style.boxShadow = '';
     }, 2000);
-    
+    // Track a simple identifier for context
+    const ident = field.name || field.id || field.autocomplete || field.type || 'password'
+    filledSelectors.push(ident)
+
     filledCount++;
   });
 
   return { 
     success: true, 
     message: `Password filled in ${filledCount} field${filledCount === 1 ? '' : 's'}`,
-    fieldsCount: filledCount
+    fieldsCount: filledCount,
+    domain: location.hostname,
+    fields: filledSelectors
   };
 }
 

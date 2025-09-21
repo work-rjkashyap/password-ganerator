@@ -69,11 +69,11 @@ class SecurePasswordGenerator {
    */
   buildCharset(options) {
     let charset = ''
-    
+
     if (options.includeUppercase) charset += this.charSets.uppercase
     if (options.includeLowercase) charset += this.charSets.lowercase
     if (options.includeNumbers) charset += this.charSets.numbers
-    
+
     if (options.includeSymbols) {
       if (options.symbolSet === 'custom' && options.customSymbols) {
         charset += options.customSymbols
@@ -140,7 +140,7 @@ class SecurePasswordGenerator {
    * @returns {string} - Filtered character set
    */
   removeAmbiguousChars(charset) {
-    return charset.split('').filter(char => 
+    return charset.split('').filter(char =>
       !this.charSets.ambiguous.includes(char)
     ).join('')
   }
@@ -153,7 +153,7 @@ class SecurePasswordGenerator {
    */
   generateRandomPassword(length, charset) {
     const array = new Uint32Array(length)
-    
+
     // Use Web Crypto API for cryptographically secure random values
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(array)
@@ -179,16 +179,16 @@ class SecurePasswordGenerator {
    * @returns {number} - Unbiased random number
    */
   getUnbiasedRandom(randomValue, max) {
-    const range = Math.floor(0x100000000 / max) * max
-    
-    // If the random value is in the biased range, generate a new one
-    if (randomValue >= range) {
+    const maxUint32 = 0x100000000
+    const range = Math.floor(maxUint32 / max) * max
+    let value = randomValue
+    // Iteratively reject biased values to avoid recursion
+    while (value >= range) {
       const newArray = new Uint32Array(1)
       crypto.getRandomValues(newArray)
-      return this.getUnbiasedRandom(newArray[0], max)
+      value = newArray[0]
     }
-    
-    return randomValue % max
+    return value % max
   }
 
   /**
@@ -211,7 +211,7 @@ class SecurePasswordGenerator {
 
     while (attempts < maxAttempts) {
       let needsChange = false
-      
+
       // Check if password meets all required character types
       if (includeUppercase && !/[A-Z]/.test(password)) needsChange = true
       if (includeLowercase && !/[a-z]/.test(password)) needsChange = true
@@ -236,7 +236,9 @@ class SecurePasswordGenerator {
    * @returns {number} - Entropy in bits
    */
   calculateEntropy(password, options = {}) {
-    const charsetSize = this.buildCharset(options).length
+    // Dedupe charset to avoid inflated sizes and guard against zero
+    const charset = Array.from(new Set(this.buildCharset(options).split(''))).join('')
+    const charsetSize = Math.max(1, charset.length)
     return password.length * Math.log2(charsetSize)
   }
 
@@ -245,45 +247,49 @@ class SecurePasswordGenerator {
    * @param {string} password - Password to analyze
    * @returns {Object} - Strength assessment
    */
-  assessPasswordStrength(password) {
+  // Accept options so callers can pass the generation options used
+  assessPasswordStrength(password, options = {}) {
     if (!password) return { score: 0, label: 'None', entropy: 0 }
 
     let charsetSize = 0
-    let score = 0
+    // If options provided, derive charset from them for accurate entropy
+    if (options && Object.keys(options).length > 0) {
+      const charset = Array.from(new Set(this.buildCharset(options).split(''))).join('')
+      charsetSize = Math.max(1, charset.length)
+    } else {
+      // Fallback: infer from password characters
+      if (/[a-z]/.test(password)) charsetSize += 26
+      if (/[A-Z]/.test(password)) charsetSize += 26
+      if (/[0-9]/.test(password)) charsetSize += 10
+      if (/[!@#$%^&*()_+\-=[\]{}|;:,.<>?~`]/.test(password)) charsetSize += 32
+      charsetSize = Math.max(1, charsetSize)
+    }
 
-    // Check character diversity
-    if (/[a-z]/.test(password)) charsetSize += 26
-    if (/[A-Z]/.test(password)) charsetSize += 26
-    if (/[0-9]/.test(password)) charsetSize += 10
-    if (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?~`]/.test(password)) charsetSize += 32
-
-    // Calculate entropy
-    const entropy = password.length * Math.log2(charsetSize)
+    const entropy = password.length * Math.log2(charsetSize || 1)
 
     // Score based on entropy and length
-    if (entropy < 25) score = 1 // Very weak
-    else if (entropy < 50) score = 2 // Weak
-    else if (entropy < 75) score = 3 // Fair
-    else if (entropy < 100) score = 4 // Good
-    else score = 5 // Strong
+    let score = 0
+    if (entropy < 25) score = 1
+    else if (entropy < 50) score = 2
+    else if (entropy < 75) score = 3
+    else if (entropy < 100) score = 4
+    else score = 5
 
-    // Adjust score based on length
     if (password.length < 8) score = Math.min(score, 2)
     else if (password.length >= 16) score = Math.min(score + 1, 5)
 
-    // Adjust score based on character diversity
     const charTypes = [
       /[a-z]/.test(password),
       /[A-Z]/.test(password),
       /[0-9]/.test(password),
-      /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?~`]/.test(password)
+      /[!@#$%^&*()_+\-=[\]{}|;:,.<>?~`]/.test(password)
     ].filter(Boolean).length
 
     if (charTypes < 2) score = Math.min(score, 2)
     else if (charTypes >= 4) score = Math.min(score + 1, 5)
 
     const labels = ['None', 'Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
-    
+
     return {
       score,
       label: labels[score],
@@ -334,17 +340,17 @@ class SecurePasswordGenerator {
    */
   validateOptions(options) {
     const errors = []
-    
+
     if (options.length < 4) errors.push('Password length must be at least 4')
     if (options.length > 256) errors.push('Password length cannot exceed 256')
-    
-    const hasAnyCharType = options.includeUppercase || 
-                          options.includeLowercase || 
-                          options.includeNumbers || 
+
+    const hasAnyCharType = options.includeUppercase ||
+                          options.includeLowercase ||
+                          options.includeNumbers ||
                           options.includeSymbols
-    
+
     if (!hasAnyCharType) errors.push('At least one character type must be selected')
-    
+
     return {
       isValid: errors.length === 0,
       errors

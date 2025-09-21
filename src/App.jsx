@@ -1,8 +1,21 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown, Send, History, Clock, Globe, Trash2, X, Download } from 'lucide-react'
+import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown, Send, History, Clock, Globe, Trash2, X, Download, Lock } from 'lucide-react'
 import SecurePasswordGenerator from './securePasswordGenerator.js'
 import MemorablePasswordGenerator from './memorablePasswordGenerator.js'
 import storageManager, { STORAGE_KEYS } from './storageUtils.js'
+import { encryptForHistory } from './lib/crypto.js'
+import { Dialog, DialogContent, DialogTitle } from './components/ui/dialog'
+import {Button} from './components/ui/Button'
+import {Select} from './components/ui/Select'
+import {Switch} from './components/ui/switch'
+import {Card} from './components/ui/Card'
+import {Input} from './components/ui/Input'
+import PasswordTypeTabs from './components/PasswordTypeTabs'
+import PasswordControls from './components/PasswordControls'
+import GeneratedPasswordCard from './components/GeneratedPasswordCard'
+import ActionButtons from './components/ActionButtons'
+import HistoryPanel from './components/HistoryPanel'
+import { Toaster, toast } from 'sonner'
 
 const App = () => {
   const [password, setPassword] = useState('')
@@ -14,7 +27,11 @@ const App = () => {
   const [showHistory, setShowHistory] = useState(false)
   const [historyData, setHistoryData] = useState([])
   const [historyStats, setHistoryStats] = useState(null)
-  
+  const [historyEnabled, setHistoryEnabled] = useState(true)
+  const [historyClearOnClose, setHistoryClearOnClose] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmModalMode, setConfirmModalMode] = useState('') // 'enable' | 'close'
+
   // Random password settings
   const [length, setLength] = useState(20)
   const [includeNumbers, setIncludeNumbers] = useState(true)
@@ -22,11 +39,11 @@ const App = () => {
   const [symbolSet, setSymbolSet] = useState('basic')
   const [customSymbols, setCustomSymbols] = useState('')
   const [showSymbolOptions, setShowSymbolOptions] = useState(false)
-  
+
   // Memorable password settings
   const [wordCount, setWordCount] = useState(3)
   const [includeCapitalization, setIncludeCapitalization] = useState(true)
-  
+
   // PIN settings
   const [pinLength, setPinLength] = useState(4)
 
@@ -39,7 +56,7 @@ const App = () => {
     const loadPreferences = async () => {
       try {
         const settings = await storageManager.getAllSettings()
-        
+
         // Set all preferences from storage
         setActiveTab(settings[STORAGE_KEYS.ACTIVE_TAB])
         setLength(settings[STORAGE_KEYS.LENGTH])
@@ -50,11 +67,24 @@ const App = () => {
         setWordCount(settings[STORAGE_KEYS.WORD_COUNT])
         setIncludeCapitalization(settings[STORAGE_KEYS.INCLUDE_CAPITALIZATION])
         setPinLength(settings[STORAGE_KEYS.PIN_LENGTH])
+        setHistoryEnabled(settings[STORAGE_KEYS.HISTORY_ENABLED])
+        const clearOnClose = settings[STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE]
+        setHistoryClearOnClose(clearOnClose)
+        // If a pending clear was set from previous unload, clear history now
+        try {
+          const pending = await storageManager.getSetting(STORAGE_KEYS.HISTORY_PENDING_CLEAR)
+          if (pending) {
+            await storageManager.clearPasswordHistory()
+            await storageManager.setSetting(STORAGE_KEYS.HISTORY_PENDING_CLEAR, false)
+          }
+        } catch (e) {
+          // ignore
+        }
 
         // Handle theme preference
         const savedTheme = settings[STORAGE_KEYS.THEME]
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        
+
         let shouldBeDark = false
         if (savedTheme === 'dark') {
           shouldBeDark = true
@@ -63,15 +93,15 @@ const App = () => {
         } else {
           shouldBeDark = prefersDark
         }
-        
+
         setIsDarkMode(shouldBeDark)
-        
+
         if (shouldBeDark) {
           document.documentElement.setAttribute('data-theme', 'dark')
         } else {
           document.documentElement.removeAttribute('data-theme')
         }
-        
+
         // Generate initial password after preferences are loaded
         setTimeout(() => {
           generatePassword()
@@ -87,7 +117,7 @@ const App = () => {
   const toggleDarkMode = useCallback(() => {
     const newDarkMode = !isDarkMode
     setIsDarkMode(newDarkMode)
-    
+
     if (newDarkMode) {
       document.documentElement.setAttribute('data-theme', 'dark')
       storageManager.setSetting(STORAGE_KEYS.THEME, 'dark')
@@ -96,6 +126,36 @@ const App = () => {
       storageManager.setSetting(STORAGE_KEYS.THEME, 'light')
     }
   }, [isDarkMode])
+
+  useEffect(() => {
+    storageManager.setSetting(STORAGE_KEYS.HISTORY_ENABLED, historyEnabled)
+  }, [historyEnabled])
+
+  useEffect(() => {
+    storageManager.setSetting(STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE, historyClearOnClose)
+  }, [historyClearOnClose])
+
+  // Clear history when popup unloads if the setting is enabled.
+  // Show a browser confirmation prompt before clearing by using beforeunload.
+  useEffect(() => {
+    // Use beforeunload to mark pending clear synchronously via localStorage
+    const beforeUnloadHandler = () => {
+      try {
+        const shouldClear = localStorage.getItem(STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE)
+        if (shouldClear && JSON.parse(shouldClear) === true) {
+          // mark pending clear so next open can clear from async chrome.storage
+          localStorage.setItem(STORAGE_KEYS.HISTORY_PENDING_CLEAR, JSON.stringify(true))
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    window.addEventListener('beforeunload', beforeUnloadHandler)
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnloadHandler)
+    }
+  }, [historyClearOnClose])
 
   // Save preferences when they change
   useEffect(() => {
@@ -137,7 +197,7 @@ const App = () => {
   const generatePassword = useCallback(() => {
     try {
       let generatedPassword = ''
-      
+
       if (activeTab === 'random') {
         const options = {
           length,
@@ -167,12 +227,12 @@ const App = () => {
           minLength: 8,
           maxLength: 50
         }
-        
+
         generatedPassword = memorableGenerator.generateMemorablePassword(options)
       } else if (activeTab === 'pin') {
         generatedPassword = generatePIN(pinLength)
       }
-      
+
       setPassword(generatedPassword)
       setCopied(false)
     } catch (error) {
@@ -205,6 +265,27 @@ const App = () => {
     }
   }, [showHistory, loadHistoryData])
 
+  // Also refresh history when switching to the History tab
+  useEffect(() => {
+    if (activeTab === 'history') {
+      loadHistoryData()
+    }
+  }, [activeTab, loadHistoryData])
+
+  useEffect(() => {
+    if (historyEnabled && activeTab === 'history') {
+      loadHistoryData()
+    }
+    if (!historyEnabled) {
+      setHistoryData([])
+      setHistoryStats(null)
+    }
+  }, [historyEnabled, activeTab, loadHistoryData])
+
+  useEffect(() => {
+    setShowHistory(activeTab === 'history')
+  }, [activeTab])
+
   const clearHistory = async () => {
     try {
       await storageManager.clearPasswordHistory()
@@ -227,9 +308,15 @@ const App = () => {
 
   const exportHistory = async () => {
     try {
+      // Confirm history export when history is disabled
+      const enabled = await storageManager.getSetting(STORAGE_KEYS.HISTORY_ENABLED)
+      if (!enabled) {
+        alert('History is disabled. Enable history in settings to export.')
+        return
+      }
       const history = await storageManager.getPasswordHistory()
       const stats = await storageManager.getPasswordHistoryStats()
-      
+
       const exportData = {
         exportedAt: new Date().toISOString(),
         stats,
@@ -244,7 +331,7 @@ const App = () => {
           timestamp: entry.timestamp
         }))
       }
-      
+
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -262,28 +349,35 @@ const App = () => {
   const generatePIN = (length) => {
     const array = new Uint32Array(length)
     crypto.getRandomValues(array)
-    
+
     let pin = ''
     for (let i = 0; i < length; i++) {
       pin += (array[i] % 10).toString()
     }
-    
+
     return pin
   }
 
   const copyToClipboard = async () => {
     if (!password) return
-    
+
     try {
       await navigator.clipboard.writeText(password)
       setCopied(true)
+      try {
+        toast.success('Password copied', { description: 'Saved to clipboard', duration: 1800 })
+      } catch(e) {}
       setTimeout(() => setCopied(false), 2000)
-      
+
       // Track copy action in history
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
         const website = tab?.url || ''
-        await storageManager.addPasswordHistory('copy', activeTab, website, password.length)
+        const passwordEnc = await encryptForHistory(password)
+        await storageManager.addPasswordHistory('copy', activeTab, website, password.length, passwordEnc)
+        if (activeTab === 'history') {
+          await loadHistoryData()
+        }
       } catch (historyError) {
         console.error('Failed to track copy action:', historyError)
       }
@@ -294,52 +388,72 @@ const App = () => {
 
   const autoFillPassword = async () => {
     if (!password) return
-    
+
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-      
+
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'fillPassword',
         password: password
       })
-      
-      if (response.success) {
+
+      if (response?.success) {
         setAutoFilled(true)
         setAutoFillMessage(response.message)
+        try {
+          const host = new URL(tab.url).hostname
+          const fieldHint = Array.isArray(response.fields) && response.fields.length ? ` • field: ${response.fields[0]}` : ''
+          toast.success('Auto-filled', { description: `${response.message} • ${host}${fieldHint}`, duration: 2800 })
+        } catch(e) {}
         setTimeout(() => {
           setAutoFilled(false)
           setAutoFillMessage('')
         }, 3000)
-        
+
         // Track autofill action in history
         try {
           const website = tab?.url || ''
-          await storageManager.addPasswordHistory('autofill', activeTab, website, password.length)
+          const passwordEnc = await encryptForHistory(password)
+          await storageManager.addPasswordHistory('autofill', activeTab, website, password.length, passwordEnc)
         } catch (historyError) {
           console.error('Failed to track autofill action:', historyError)
         }
-      } else {
+      } else if (response) {
         setAutoFillMessage(response.message)
+        try {
+          const host = response.domain || (tab?.url ? new URL(tab.url).hostname : '')
+          const fieldHint = Array.isArray(response.fields) && response.fields.length ? ` • field: ${response.fields[0]}` : ''
+          const desc = host ? `${response.message} • ${host}${fieldHint}` : `${response.message}${fieldHint}`
+          toast.error('Auto-fill failed', { description: desc, duration: 3000 })
+        } catch(e) {}
         setTimeout(() => setAutoFillMessage(''), 3000)
+      } else {
+        try { toast.error('Auto-fill failed', { duration: 3000 }) } catch(e) {}
       }
     } catch (err) {
       console.error('Failed to auto-fill password:', err)
       setAutoFillMessage('Failed to auto-fill password')
+      try { toast.error('Auto-fill failed', { duration: 3000 }) } catch(e) {}
       setTimeout(() => setAutoFillMessage(''), 3000)
     }
   }
 
   const getStrengthForCurrentType = () => {
     if (!password) return { score: 0, label: 'None', entropy: 0 }
-    
+
     if (activeTab === 'random') {
       const options = {
+        length,
         includeUppercase: true,
         includeLowercase: true,
         includeNumbers,
         includeSymbols,
+        symbolSet,
+        customSymbols,
         excludeAmbiguous: false
       }
+
+      // Pass the exact generation options so strength uses same charset
       return passwordGenerator.assessPasswordStrength(password, options)
     } else if (activeTab === 'memorable') {
       return memorableGenerator.assessMemorableStrength(password)
@@ -350,11 +464,11 @@ const App = () => {
       if (entropy >= 30) score = 3
       if (entropy >= 40) score = 4
       if (entropy >= 50) score = 5
-      
+
       const labels = ['None', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
       return { score, label: labels[score], entropy: Math.round(entropy) }
     }
-    
+
     return { score: 0, label: 'None', entropy: 0 }
   }
 
@@ -380,26 +494,16 @@ const App = () => {
               <div className="slider-value">{length}</div>
             </div>
           </div>
-          
+
           <div className="toggle-group">
             <div className="toggle-item">
               <label className="toggle-label">Numbers</label>
-              <div 
-                className={`toggle-switch ${includeNumbers ? 'active' : ''}`}
-                onClick={() => setIncludeNumbers(!includeNumbers)}
-              >
-                <div className="toggle-slider"></div>
-              </div>
+              <Switch checked={includeNumbers} onCheckedChange={setIncludeNumbers} />
             </div>
-            
+
             <div className="toggle-item">
               <label className="toggle-label">Symbols</label>
-              <div 
-                className={`toggle-switch ${includeSymbols ? 'active' : ''}`}
-                onClick={() => setIncludeSymbols(!includeSymbols)}
-              >
-                <div className="toggle-slider"></div>
-              </div>
+              <Switch checked={includeSymbols} onCheckedChange={setIncludeSymbols} />
             </div>
           </div>
 
@@ -407,48 +511,26 @@ const App = () => {
             <div className="symbol-options">
               <div className="symbol-selector">
                 <label className="symbol-selector-label">Symbol Set</label>
-                <button 
-                  className="symbol-dropdown-trigger"
-                  onClick={() => setShowSymbolOptions(!showSymbolOptions)}
-                >
-                  <span>{symbolSets[symbolSet]?.name || 'Basic'}</span>
-                  <ChevronDown size={14} className={`dropdown-icon ${showSymbolOptions ? 'rotated' : ''}`} />
-                </button>
-                
-                {showSymbolOptions && (
-                  <div className="symbol-dropdown">
-                    {Object.entries(symbolSets).map(([key, set]) => (
-                      <button
-                        key={key}
-                        className={`symbol-option ${symbolSet === key ? 'active' : ''}`}
-                        onClick={() => {
-                          setSymbolSet(key)
-                          setShowSymbolOptions(false)
-                        }}
-                      >
-                        <div className="symbol-option-info">
-                          <span className="symbol-option-name">{set.name}</span>
-                          <span className="symbol-option-preview">{set.symbols || 'Custom'}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <Select
+                  label={null}
+                  value={symbolSet}
+                  onChange={(v) => setSymbolSet(v)}
+                  options={Object.entries(symbolSets).map(([key, set]) => ({ value: key, label: set.name, preview: set.symbols }))}
+                />
               </div>
-              
+
               {symbolSet === 'custom' && (
                 <div className="custom-symbols">
                   <label className="custom-symbols-label">Custom Symbols</label>
-                  <input
-                    type="text"
+                  <Input
                     placeholder="Enter custom symbols"
                     value={customSymbols}
-                    onChange={(e) => setCustomSymbols(e.target.value)}
+                    onChange={setCustomSymbols}
                     className="custom-symbols-input"
                   />
                 </div>
               )}
-              
+
               <div className="symbol-preview">
                 <span className="symbol-preview-label">Using: </span>
                 <span className="symbol-preview-text">
@@ -476,16 +558,11 @@ const App = () => {
               <div className="slider-value">{wordCount}</div>
             </div>
           </div>
-          
+
           <div className="toggle-group">
             <div className="toggle-item">
               <label className="toggle-label">Capitalization</label>
-              <div 
-                className={`toggle-switch ${includeCapitalization ? 'active' : ''}`}
-                onClick={() => setIncludeCapitalization(!includeCapitalization)}
-              >
-                <div className="toggle-slider"></div>
-              </div>
+              <Switch checked={includeCapitalization} onCheckedChange={setIncludeCapitalization} />
             </div>
           </div>
         </>
@@ -514,12 +591,12 @@ const App = () => {
     const date = new Date(timestamp)
     const now = new Date()
     const diffInMinutes = Math.floor((now - date) / (1000 * 60))
-    
+
     if (diffInMinutes < 1) return 'Just now'
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
     if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d ago`
-    
+
     return date.toLocaleDateString()
   }
 
@@ -536,6 +613,7 @@ const App = () => {
     if (!showHistory) return null
 
     return (
+      <>
       <div className="history-panel">
         <div className="history-header">
           <div className="history-title">
@@ -543,6 +621,30 @@ const App = () => {
             <span>Password History</span>
           </div>
           <div className="history-actions">
+            <div className="history-toggle">
+              <Button
+                variant={historyEnabled ? 'default' : 'default'}
+                className={`history-enabled-btn ${historyEnabled ? 'enabled' : 'disabled'}`}
+                onClick={() => setHistoryEnabled(!historyEnabled)}
+                title={historyEnabled ? 'Disable history' : 'Enable history'}
+              >
+                <Lock size={14} />
+              </Button>
+            </div>
+            <div className="history-clear-on-close">
+              <label className="history-clear-label">Clear on close</label>
+              <div>
+                <Button
+                  className={`ml-2 ${historyClearOnClose ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                  onClick={() => {
+                    setConfirmModalMode(historyClearOnClose ? 'disable' : 'enable')
+                    setShowConfirmModal(true)
+                  }}
+                >
+                  {historyClearOnClose ? 'Enabled' : 'Disabled'}
+                </Button>
+              </div>
+            </div>
             {historyData.length > 0 && (
               <>
                 <button className="export-history-btn" onClick={exportHistory} title="Export history">
@@ -560,7 +662,7 @@ const App = () => {
         </div>
 
         {historyStats && (
-          <div className="history-stats">
+          <Card className="history-stats">
             <div className="stat-item">
               <span className="stat-label">Total Actions:</span>
               <span className="stat-value">{historyStats.total}</span>
@@ -579,7 +681,7 @@ const App = () => {
                 <span className="stat-value">{historyStats.autofillCount}</span>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         <div className="history-list">
@@ -621,7 +723,7 @@ const App = () => {
                       <Clock size={12} />
                       <span>{formatTimestamp(entry.timestamp)}</span>
                     </div>
-                    <button 
+                    <button
                       className="remove-entry-btn"
                       onClick={() => removeHistoryEntry(entry.id)}
                       title="Remove this entry"
@@ -635,100 +737,133 @@ const App = () => {
           )}
         </div>
       </div>
+
+      {/* Confirmation dialog for toggling clear-on-close */}
+      <Dialog open={showConfirmModal} onOpenChange={(v) => setShowConfirmModal(v)}>
+        <DialogContent>
+          <DialogTitle>{confirmModalMode === 'enable' ? 'Enable Clear on Close' : 'Disable Clear on Close'}</DialogTitle>
+          <p className="text-sm mb-4">Are you sure you want to {confirmModalMode === 'enable' ? 'enable' : 'disable'} clearing history when the popup closes?</p>
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setShowConfirmModal(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={async () => {
+                setShowConfirmModal(false)
+                if (confirmModalMode === 'enable') setHistoryClearOnClose(true)
+                else setHistoryClearOnClose(false)
+                // Persist immediately
+                await storageManager.setSetting(STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE, confirmModalMode === 'enable')
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
     )
   }
 
   return (
-    <div className="app-container">
-      <div className="header-section">
-        <h1 className="app-title">Choose password type</h1>
-        <div className="header-actions">
-          <button className="history-toggle" onClick={() => setShowHistory(!showHistory)} title="View password history">
-            <History size={16} />
-          </button>
-          <button className="dark-mode-toggle" onClick={toggleDarkMode} title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
-            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        </div>
-      </div>
-      
-      <div className="tab-container">
-        <div className="tab-group">
-          <button 
-            className={`tab-button ${activeTab === 'random' ? 'active' : ''}`}
-            onClick={() => setActiveTab('random')}
-          >
-            <Shuffle className="tab-icon" size={14} />
-            <span className="tab-label">Random</span>
-          </button>
-          
-          <button 
-            className={`tab-button ${activeTab === 'memorable' ? 'active' : ''}`}
-            onClick={() => setActiveTab('memorable')}
-          >
-            <Lightbulb className="tab-icon" size={14} />
-            <span className="tab-label">Memorable</span>
-          </button>
-          
-          <button 
-            className={`tab-button ${activeTab === 'pin' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pin')}
-          >
-            <Hash className="tab-icon" size={14} />
-            <span className="tab-label">PIN</span>
-          </button>
-        </div>
-      </div>
-      
-      <div className="content-section">
-        <h2 className="section-title">Customize your new password</h2>
-        
-        <div className="controls-section">
-          {renderTabContent()}
-        </div>
-        
-        <div className="password-section">
-          <h3 className="password-title">Generated password</h3>
-          <div className="password-display">
-            {password || 'Your password will appear here...'}
+    <div className="min-h-screen bg-background text-foreground max-w-sm mx-auto p-4">
+      <Toaster position="top-center" richColors closeButton duration={2500} />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold">Choose password type</div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800"
+              onClick={() => {
+                setShowHistory(true)
+                setActiveTab('history')
+              }}
+              title="View password history"
+            >
+              <History size={16} />
+            </button>
+            {/* Theme toggle uses shadcn theme provider */}
+            <button className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800" title="Toggle theme" onClick={() => {
+              const current = document.documentElement.classList.contains('dark') ? 'dark' : (document.documentElement.classList.contains('light') ? 'light' : 'system')
+              const next = current === 'dark' ? 'light' : 'dark'
+              try { localStorage.setItem('vite-ui-theme', next) } catch(e) {}
+              document.documentElement.classList.remove('light','dark')
+              document.documentElement.classList.add(next)
+              setIsDarkMode(next === 'dark')
+            }}>
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
           </div>
         </div>
-        
-        <div className="button-section">
-          <button className="copy-button" onClick={copyToClipboard} disabled={!password}>
-            <Copy size={14} />
-            Copy password
-          </button>
-          <button className="autofill-button" onClick={autoFillPassword} disabled={!password}>
-            <Send size={14} />
-            Auto-fill
-          </button>
-          <button className="refresh-button" onClick={generatePassword}>
-            <RefreshCw size={14} />
-            Refresh password
-          </button>
-        </div>
-        
-        {copied && (
-          <div className="success-message">
-            Password copied to clipboard!
+
+        <PasswordTypeTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        {activeTab === 'history' ? (
+          <>
+            <HistoryPanel
+              showHistory={true}
+              setShowHistory={setShowHistory}
+              historyData={historyData}
+              historyStats={historyStats}
+              historyEnabled={historyEnabled}
+              setHistoryEnabled={setHistoryEnabled}
+              historyClearOnClose={historyClearOnClose}
+              setConfirmModalMode={setConfirmModalMode}
+              setShowConfirmModal={setShowConfirmModal}
+              exportHistory={exportHistory}
+              clearHistory={clearHistory}
+              removeHistoryEntry={removeHistoryEntry}
+              formatTimestamp={formatTimestamp}
+              getPasswordTypeIcon={getPasswordTypeIcon}
+              showConfirmModal={showConfirmModal}
+              setShowConfirmModalLocal={setShowConfirmModal}
+              confirmModalMode={confirmModalMode}
+              onConfirmClearOnClose={async (enable) => {
+                setHistoryClearOnClose(enable)
+                try {
+                  await storageManager.setSetting(STORAGE_KEYS.HISTORY_CLEAR_ON_CLOSE, enable)
+                  const id = 'toast-clear-on-close'
+                  // show a confirmation toast
+                  toast.success(enable ? 'Enabled: clear on close' : 'Disabled: clear on close', { id, duration: 2000 })
+                } catch(e) {}
+              }}
+            />
+          </>
+        ) : (
+        <div className="space-y-4">
+          <h2 className="text-sm font-medium">Customize your new password</h2>
+          <div className="space-y-4">
+            <div className="space-y-4">
+              <PasswordControls
+                activeTab={activeTab}
+                length={length} setLength={setLength}
+                includeNumbers={includeNumbers} setIncludeNumbers={setIncludeNumbers}
+                includeSymbols={includeSymbols} setIncludeSymbols={setIncludeSymbols}
+                symbolSet={symbolSet} setSymbolSet={setSymbolSet}
+                customSymbols={customSymbols} setCustomSymbols={setCustomSymbols}
+                symbolSets={symbolSets}
+                wordCount={wordCount} setWordCount={setWordCount}
+                includeCapitalization={includeCapitalization} setIncludeCapitalization={setIncludeCapitalization}
+                pinLength={pinLength} setPinLength={setPinLength}
+              />
+              <Card>
+                <div className="p-3 space-y-3">
+                  <GeneratedPasswordCard password={password} onCopy={copyToClipboard} />
+                  <ActionButtons onCopy={copyToClipboard} onAutofill={autoFillPassword} onRefresh={generatePassword} disabled={!password} />
+                </div>
+              </Card>
+            </div>
+
+            {copied && <div className="text-sm text-green-600">Password copied to clipboard!</div>}
+            {autoFilled && <div className="text-sm text-green-600">{autoFillMessage}</div>}
+            {!autoFilled && autoFillMessage && <div className="text-sm text-red-600">{autoFillMessage}</div>}
           </div>
+        </div>
+
         )}
-        
-        {autoFilled && (
-          <div className="success-message">
-            {autoFillMessage}
-          </div>
-        )}
-        
-        {!autoFilled && autoFillMessage && (
-          <div className="error-message">
-            {autoFillMessage}
-          </div>
-        )}
       </div>
-      
-      {renderHistoryPanel()}
     </div>
   )
 }
