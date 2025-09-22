@@ -100,26 +100,13 @@ const HistoryPanel = ({
     <TooltipProvider>
       <>
         <div className="w-full p-2 space-y-3">
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm px-3 py-2.5 flex flex-col gap-2">
+        <Card className="sticky border  top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm px-3 py-2.5 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <History size={16} />
             <span className="text-sm font-medium">Password History</span>
           </div>
           <TooltipProvider>
             <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => { try { clearAuthWindow() } catch(e) {} }}
-                    aria-label="Lock"
-                  >
-                    <Lock size={14} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Lock</TooltipContent>
-              </Tooltip>
 
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">History</span>
@@ -159,7 +146,7 @@ const HistoryPanel = ({
               )}
             </div>
           </TooltipProvider>
-        </div>
+        </Card>
 
         {historyStats && (
           <Card className="p-3 bg-muted/20">
@@ -225,7 +212,7 @@ const HistoryPanel = ({
                   {entry.passwordEnc ? (
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <div className="text-sm font-mono truncate">
-                        {revealed[entry.id] ? revealed[entry.id] : '••••••••'}
+                        {revealed[entry.id] ? revealed[entry.id] : '••••••••••••'}
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Tooltip>

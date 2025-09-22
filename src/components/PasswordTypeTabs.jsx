@@ -4,7 +4,7 @@ import { Button } from './ui/button'
 
 const PasswordTypeTabs = ({ activeTab, setActiveTab }) => {
   return (
-    <div className="flex">
+    <div className="flex w-full min-w-[350px]">
       <div className="flex-1 overflow-x-auto whitespace-nowrap no-scrollbar">
         <div className="inline-flex gap-1.5 min-w-full bg-muted/40 rounded-lg p-1">
           <Button

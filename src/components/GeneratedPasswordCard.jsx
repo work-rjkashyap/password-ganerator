@@ -32,7 +32,7 @@ const GeneratedPasswordCard = ({ password, onCopy }) => {
   }, [password, zxcvbnFn])
 
   return (
-    <Card className="p-3">
+    <Card className="p-3 border-none shadow-none bg-muted/10">
       <div className="text-xs text-muted-foreground mb-2">Generated password</div>
       <div className="flex items-center gap-2">
         <Input

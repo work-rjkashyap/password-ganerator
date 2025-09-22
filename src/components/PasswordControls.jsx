@@ -25,13 +25,13 @@ const PasswordControls = ({
   if (activeTab === 'random') {
     return (
       <Card>
-        <CardHeader className="pb-1 pt-3 px-4">
+        <CardHeader className="px-3 pt-2 pb-1">
           <CardTitle className="text-sm">Random Password Options</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-2 px-4 pb-4">
-        <div className="space-y-2">
+        <CardContent className="space-y-3 pt-1.5 px-5 pb-3">
+        <div className="space-y-1.5">
           <label className="text-sm text-foreground">Characters</label>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="w-4 text-xs text-muted-foreground">4</span>
             <div className="relative flex-1 group"
               onMouseDown={() => setDraggingLen(true)}
@@ -67,7 +67,7 @@ const PasswordControls = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-between">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">
           <div className="flex items-center gap-2">
             <Switch id="includeNumbers" checked={includeNumbers} onCheckedChange={setIncludeNumbers} />
             <label htmlFor="includeNumbers" className="text-sm text-foreground">Numbers</label>
@@ -80,26 +80,29 @@ const PasswordControls = ({
         </div>
 
         {includeSymbols && (
-          <Card className="symbol-options border-dashed bg-muted/20">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-sm">Symbols</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-2 px-4 pb-4">
+          <Card className="symbol-options border-none bg-muted/10 shadow-none">
+
+            <CardContent className="px-0 space-y-2.5 pt-1.5 pb-3">
               <Combobox
                 value={symbolSet}
                 onChange={(v) => setSymbolSet(v)}
                 placeholder="Select symbol set"
-                options={Object.entries(symbolSets).map(([key, set]) => ({ value: key, label: set.name, preview: set.symbols }))}
+                options={Object.entries(symbolSets).map(([key, set]) => ({
+                  value: key,
+                  label: set.name,
+                  preview: set.symbols,
+                  description: set.description
+                }))}
                 className="w-full"
               />
 
               {symbolSet === 'custom' && (
-                <div>
+                <div className="space-y-1">
                   <label className="text-sm text-foreground">Custom Symbols</label>
                   <Input
                     placeholder="Enter custom symbols"
                     value={customSymbols}
-                    onChange={setCustomSymbols}
+                    onChange={(event) => setCustomSymbols(event.target.value)}
                   />
                 </div>
               )}

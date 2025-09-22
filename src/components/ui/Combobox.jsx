@@ -1,8 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
+import { Check, ChevronsUpDown } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command'
 
 /**
- * Simple Combobox
+ * Modern combobox aligned with extension theme
  * props:
  * - value: current value
  * - onChange: (value) => void
@@ -10,77 +22,77 @@ import { cn } from '@/lib/utils'
  * - placeholder
  * - className
  */
-const Combobox = ({ value, onChange, options = [], placeholder = '', className = '' }) => {
+const Combobox = ({ value, onChange, options = [], placeholder = 'Select option', className = '' }) => {
   const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [highlight, setHighlight] = useState(0)
-  const ref = useRef(null)
+  const selected = options.find(option => option.value === value)
+  const preview = selected?.preview?.trim()
+  const description = selected?.description?.trim()
 
-  useEffect(() => {
-    const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('click', onDoc)
-    return () => document.removeEventListener('click', onDoc)
-  }, [])
-
-  const selected = options.find(o => o.value === value)
-  const list = query
-    ? options.filter(o => (o.label + ' ' + (o.preview || '')).toLowerCase().includes(query.toLowerCase()))
-    : options
-
-  const onKeyDown = (e) => {
-    if (!open) return
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setHighlight(h => Math.min(h + 1, list.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHighlight(h => Math.max(h - 1, 0))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      const opt = list[highlight]
-      if (opt) onChange(opt.value)
-      setOpen(false)
-    } else if (e.key === 'Escape') {
-      setOpen(false)
-    }
+  const handleSelect = (nextValue) => {
+    onChange(nextValue)
+    setOpen(false)
   }
 
   return (
-    <div ref={ref} className={cn('relative', className)}>
-      <div className="flex items-center">
-        <input
-          className="w-full px-3 py-2 rounded-md border border-input bg-popover text-popover-foreground placeholder:text-muted-foreground text-sm"
-          placeholder={placeholder}
-          value={open ? query : (selected ? selected.label : '')}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0) }}
-          onFocus={() => { setOpen(true); setQuery('') }}
-          onKeyDown={onKeyDown}
-          aria-expanded={open}
-        />
-      </div>
-
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md max-h-48 overflow-auto">
-          {list.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-muted">No results</div>
-          ) : (
-            list.map((opt, idx) => (
-              <button
-                key={opt.value}
-                className={cn('w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex flex-col', idx === highlight ? 'bg-accent text-accent-foreground' : '')}
-                onMouseEnter={() => setHighlight(idx)}
-                onClick={() => { onChange(opt.value); setOpen(false) }}
-                type="button"
-              >
-                <span className="font-medium">{opt.label}</span>
-                {opt.preview && <span className="text-xs text-muted truncate">{opt.preview}</span>}
-              </button>
-            ))
-          )}
-        </div>
-      )}
+    <div className={cn('relative w-full', className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant='outline'
+            role='combobox'
+            type='button'
+            aria-expanded={open}
+            aria-label={selected ? selected.label : placeholder}
+            className='w-full justify-between gap-2 px-3 py-1.5 text-left h-auto min-h-[36px]'
+          >
+            <div className='flex flex-1 flex-col items-start text-left'>
+              <span className='text-sm font-medium leading-tight text-foreground'>
+                {selected ? selected.label : placeholder}
+              </span>
+              <div className='mt-0.5 flex w-full flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground'>
+                {selected ? (
+                  <span className='max-w-full truncate'>{description || 'Symbols preset'}</span>
+                ) : (
+                  <span>Choose a symbol set</span>
+                )}
+              </div>
+            </div>
+            <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className='w-[260px] p-0'>
+          <Command>
+            <CommandInput placeholder='Search symbol sets...' />
+            <CommandList>
+              <CommandEmpty>No symbol sets found.</CommandEmpty>
+              <CommandGroup>
+                {options.map(option => {
+                  const optionPreview = option.preview?.trim()
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      onSelect={() => handleSelect(option.value)}
+                      className='flex items-start gap-2 py-2'
+                    >
+                      <div className='flex flex-1 flex-col text-left'>
+                        <span className='text-sm font-medium leading-tight text-foreground'>{option.label}</span>
+                        {option.description && (
+                          <span className='mt-0.5 text-[11px] text-muted-foreground'>{option.description}</span>
+                        )}
+                        {optionPreview && option.description && (
+                          <span className='mt-0.5 text-[10px] text-muted-foreground'>({optionPreview.length} symbols)</span>
+                        )}
+                      </div>
+                      <Check className={cn('mt-0.5 h-4 w-4 text-primary opacity-0', option.value === value && 'opacity-100')} />
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

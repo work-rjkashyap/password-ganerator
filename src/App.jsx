@@ -525,7 +525,7 @@ const App = () => {
                   <Input
                     placeholder="Enter custom symbols"
                     value={customSymbols}
-                    onChange={setCustomSymbols}
+                    onChange={(event) => setCustomSymbols(event.target.value)}
                     className="custom-symbols-input"
                   />
                 </div>
@@ -767,38 +767,40 @@ const App = () => {
   return (
     <div className="min-h-screen bg-background text-foreground max-w-sm mx-auto p-4">
       <Toaster position="top-center" richColors closeButton duration={2500} />
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold">Choose password type</div>
+      <div className="space-y-4 min-w-[350px]">
+        <div className="sticky top-0 z-30 flex w-full flex-col gap-3 border-b border-border bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-semibold">Choose password type</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800"
+                onClick={() => {
+                  setShowHistory(true)
+                  setActiveTab('history')
+                }}
+                title="View password history"
+              >
+                <History size={16} />
+              </button>
+              {/* Theme toggle uses shadcn theme provider */}
+              <button className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800" title="Toggle theme" onClick={() => {
+                const current = document.documentElement.classList.contains('dark') ? 'dark' : (document.documentElement.classList.contains('light') ? 'light' : 'system')
+                const next = current === 'dark' ? 'light' : 'dark'
+                try { localStorage.setItem('vite-ui-theme', next) } catch(e) {}
+                document.documentElement.classList.remove('light','dark')
+                document.documentElement.classList.add(next)
+                setIsDarkMode(next === 'dark')
+              }}>
+                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800"
-              onClick={() => {
-                setShowHistory(true)
-                setActiveTab('history')
-              }}
-              title="View password history"
-            >
-              <History size={16} />
-            </button>
-            {/* Theme toggle uses shadcn theme provider */}
-            <button className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800" title="Toggle theme" onClick={() => {
-              const current = document.documentElement.classList.contains('dark') ? 'dark' : (document.documentElement.classList.contains('light') ? 'light' : 'system')
-              const next = current === 'dark' ? 'light' : 'dark'
-              try { localStorage.setItem('vite-ui-theme', next) } catch(e) {}
-              document.documentElement.classList.remove('light','dark')
-              document.documentElement.classList.add(next)
-              setIsDarkMode(next === 'dark')
-            }}>
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          </div>
+          <PasswordTypeTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
-
-        <PasswordTypeTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {activeTab === 'history' ? (
           <>
