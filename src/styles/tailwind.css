@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource/geist-mono/400.css";
-@import "@fontsource/geist-mono/600.css";
+/* Alan Sans from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Alan+Sans:wght@400;600&display=swap');
 
 @plugin "tailwindcss-animate";
 @import "tw-animate-css";
@@ -10,6 +10,10 @@
 /* Hide horizontal scrollbar but keep scrollability */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Hide all scrollbars globally (webkit, Firefox, IE) */
+*::-webkit-scrollbar { display: none !important; }
+* { -ms-overflow-style: none !important; scrollbar-width: none !important; }
 
 body {
   font-family: var(--font-sans);
@@ -79,11 +83,11 @@ code, pre, kbd, samp {
     }
   }
 
-  --font-sans: Geist Mono, monospace;
+  --font-sans: 'Alan Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
 
   --font-mono: Geist Mono, monospace;
 
-  --font-serif: Geist Mono, monospace;
+  --font-serif: 'Alan Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
 
   --radius: 0rem;
 

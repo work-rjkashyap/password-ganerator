@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown, Send, History, Clock, Globe, Trash2, X, Download, Lock } from 'lucide-react'
+import { Shuffle, Lightbulb, Hash, Copy, RefreshCw, Moon, Sun, ChevronDown, Send, History, Clock, Globe, Trash2, X, Download, Lock, Github, Star, Mail, ExternalLink } from 'lucide-react'
 import SecurePasswordGenerator from './securePasswordGenerator.js'
 import MemorablePasswordGenerator from './memorablePasswordGenerator.js'
 import storageManager, { STORAGE_KEYS } from './storageUtils.js'
@@ -16,6 +16,8 @@ import GeneratedPasswordCard from './components/GeneratedPasswordCard'
 import ActionButtons from './components/ActionButtons'
 import HistoryPanel from './components/HistoryPanel'
 import { Toaster, toast } from 'sonner'
+import manifest from '../manifest.json'
+import pkg from '../package.json'
 
 const App = () => {
   const [password, setPassword] = useState('')
@@ -584,6 +586,80 @@ const App = () => {
           </div>
         </div>
       )
+      }
+    else if (activeTab === 'about') {
+      return (
+        <div className="space-y-2">
+          <Card className="p-3">
+            <div className="flex gap-3 items-start">
+
+
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col  items-start gap-3">
+                  <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
+                  <img src="icons/icon128.png" alt="app icon" className="w-8 h-8 object-contain" />
+                </div>
+                <h3 className="text-sm font-semibold mb-0">{manifest?.name || 'SecurePass Generator'}</h3>
+
+              </div>
+
+                    {manifest?.description && <p className="mt-1 text-sm text-primary leading-tight">{manifest.description}</p>}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a href={manifest?.homepage_url || 'https://github.com/work-rjkashyap/password-ganerator'} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200">
+                      <Github size={16} />
+                    </a>
+                    <a href="https://chromewebstore.google.com/detail/securepass-generator/iillkojencnommaljcgiommobneopafa" target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-yellow-500">
+                      <Star size={16} />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-primary">Version</div>
+                    <div className="text-sm font-medium">{manifest?.version || pkg?.version}</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-primary">License</div>
+                    <div className="text-sm font-medium">{pkg?.license || 'MIT'}</div>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-primary">Permissions</div>
+                    <div className="text-sm font-medium">{manifest?.permissions ? manifest.permissions.join(', ') : 'storage, clipboardWrite'}</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-primary">Developer</div>
+                    <div className="text-sm font-medium">Rajeshwar Kashyap</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-4">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="text-primary"><Lock size={20} /></div>
+                    <div>
+                      <div className="text-sm font-medium">Security</div>
+                      <div className="text-sm text-primary leading-tight mt-1">All password generation runs locally in your browser using the Web Crypto API (<code>crypto.getRandomValues()</code>) with rejection sampling to avoid statistical bias. The extension does not transmit generated passwords or form data to external servers. Preferences are stored via Chrome Storage; history entries (if enabled) are encrypted before saving.</div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="text-primary"><Mail size={20} /></div>
+                    <div>
+                      <div className="text-sm font-medium">Support</div>
+                      <div className="text-sm text-primary leading-tight mt-1">For bugs or feature requests, open an issue on the <a className="text-primary underline" href="https://github.com/work-rjkashyap/password-ganerator" target="_blank" rel="noopener noreferrer">GitHub repository</a>. For direct support, email <code>rajeshwarkashyap5@gmail.com</code> — include the extension version and reproduction steps to help us diagnose faster.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )
     }
   }
 
@@ -776,7 +852,7 @@ const App = () => {
 
             <div className="flex items-center gap-2">
               <button
-                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 transform transition-transform duration-150 ease-in-out hover:scale-110 text-emerald-600 dark:text-emerald-400"
                 onClick={() => {
                   setShowHistory(true)
                   setActiveTab('history')
@@ -786,7 +862,7 @@ const App = () => {
                 <History size={16} />
               </button>
               {/* Theme toggle uses shadcn theme provider */}
-              <button className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800" title="Toggle theme" onClick={() => {
+              <button className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 transform transition-transform duration-150 ease-in-out hover:scale-105 ${isDarkMode ? 'text-yellow-400' : 'text-slate-600'}`} title="Toggle theme" onClick={() => {
                 const current = document.documentElement.classList.contains('dark') ? 'dark' : (document.documentElement.classList.contains('light') ? 'light' : 'system')
                 const next = current === 'dark' ? 'light' : 'dark'
                 try { localStorage.setItem('vite-ui-theme', next) } catch(e) {}
@@ -796,6 +872,26 @@ const App = () => {
               }}>
                 {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
+              {/* GitHub repo link */}
+              <a
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 transform transition duration-150 ease-in-out hover:scale-105 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                href="https://github.com/work-rjkashyap/password-ganerator"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open GitHub repository"
+              >
+                <Github size={16} />
+              </a>
+              {/* Rate us on Chrome Web Store */}
+              <a
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 transform transition-transform duration-150 ease-in-out hover:scale-110 text-yellow-500 dark:text-yellow-400"
+                href="https://chromewebstore.google.com/detail/securepass-generator/iillkojencnommaljcgiommobneopafa"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Rate us on Chrome Web Store"
+              >
+                <Star size={16} />
+              </a>
             </div>
           </div>
 
@@ -833,6 +929,10 @@ const App = () => {
               }}
             />
           </>
+        ) : activeTab === 'about' ? (
+          <div className="space-y-4">
+            {renderTabContent()}
+          </div>
         ) : (
         <div className="space-y-4">
           <h2 className="text-sm font-medium">Customize your new password</h2>

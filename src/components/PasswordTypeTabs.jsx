@@ -1,5 +1,5 @@
 import React from 'react'
-import { Shuffle, Lightbulb, Hash } from 'lucide-react'
+import { Shuffle, Lightbulb, Hash, Info } from 'lucide-react'
 import { Button } from './ui/button'
 
 const PasswordTypeTabs = ({ activeTab, setActiveTab }) => {
@@ -32,6 +32,15 @@ const PasswordTypeTabs = ({ activeTab, setActiveTab }) => {
         >
           <Hash className="inline-block mr-2 -ml-0.5" size={14} />
           PIN
+          </Button>
+
+          <Button
+          variant={activeTab === 'about' ? 'default' : 'ghost'}
+          className={`justify-start shrink-0 rounded-md px-3 py-1.5 text-sm transition-shadow ${activeTab === 'about' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted'}`}
+          onClick={() => setActiveTab('about')}
+        >
+          <Info className={`inline-block mr-2 -ml-0.5 transform transition-transform duration-150 ${activeTab === 'about' ? 'text-cyan-500 scale-110' : 'text-gray-500 hover:scale-105'}`} size={14} />
+          About
           </Button>
         </div>
       </div>

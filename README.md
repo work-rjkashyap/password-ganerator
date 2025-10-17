@@ -1,236 +1,122 @@
 # Password Generator Chrome Extension
 
-A modern, secure Chrome extension for generating strong passwords with multiple password types and customizable options. Built with React.js and modern security practices.
+A modern Chrome extension for generating strong, memorable, and numeric passwords. The popup is built with React 18 + Vite, styled with Tailwind helpers, and persists user preferences with the Chrome Storage API. Cryptographic randomness comes from the Web Crypto API, ensuring every password is safe to use.
 
-## Features
+## Feature Highlights
 
-### 🔒 Security Features
-- **Cryptographically Secure Random Generation**: Uses Web Crypto API (`crypto.getRandomValues()`) for true randomness
-- **Rejection Sampling**: Eliminates modulo bias for uniform distribution
-- **Password Strength Assessment**: Advanced scoring algorithm based on entropy, length, and character diversity
-- **No Password Storage**: All generation happens locally with no logging or storage
-- **Chrome Storage Integration**: Securely stores user preferences using Chrome Storage API
+### Security
+- Cryptographically secure generation powered by `crypto.getRandomValues()`
+- Rejection sampling to avoid modulo bias and preserve uniform character distribution
+- Entropy-driven strength scoring with guidance on crack time
+- No network calls, analytics, or password persistence beyond local component state
 
-### 🎨 User Experience
-- **Modern Compact UI**: Clean, optimized interface for Chrome extension popup
-- **Dark Mode Support**: System preference detection with manual toggle
-- **Responsive Design**: Works on different screen sizes with smooth animations
-- **Lucide Icons**: Beautiful, consistent iconography throughout the interface
-- **Transparent Background**: Clean popup appearance with glass-like design
+### Generators
+- **Random** passwords with length 4-50, configurable character classes, and curated symbol sets (Basic, Extended, Safe, Brackets, Punctuation, Math, or custom)
+- **Memorable** passphrases using common-word dictionaries, optional capitalization, and smart separators
+- **PIN** builder supporting 4-12 digits with entropy feedback for quick authentication scenarios
 
-### ⚙️ Password Types & Options
+### User Experience
+- Compact popup UI optimised for Manifest V3 extensions with dark/light theme support
+- Tailwind-based design system with Lucide icons and consistent motion primitives
+- State persisted between sessions via `storage.local`
+- Copy to clipboard flow using Chrome clipboard permissions with toast feedback
 
-#### Random Passwords
-- **Length**: 4-50 characters (default: 20)
-- **Character Types**: Uppercase, lowercase, numbers, symbols
-- **Symbol Selection**: Choose from predefined sets or create custom symbols
-- **Symbol Sets**: Basic, Extended, Safe, Brackets, Punctuation, Math, Custom
-- **Real-time Preview**: See selected symbols before generation
+## Requirements
 
-#### Memorable Passwords
-- **Word Count**: 2-6 words (default: 3)
-- **Capitalization**: Toggle for better memorability
-- **Common Words**: Uses dictionary of common English words
-- **Random Separators**: Automatic separator insertion for security
+- Node.js 18+ (matches current Vite support matrix)
+- npm 9+
+- Chrome 88+ (or any Chromium browser with Manifest V3)
 
-#### PIN Generation
-- **Length**: 4-12 digits (default: 4)
-- **Cryptographically Secure**: Uses Web Crypto API for random digits
-- **Entropy Assessment**: Real-time strength calculation
+## Quick Start
 
-## Installation
+```bash
+npm install
+npm run dev
+```
 
-### From Source
+The Vite dev server starts at `http://localhost:5173/` with hot module replacement so you can iterate on the popup UI quickly. When you need to validate inside Chrome, follow the packaging steps below to load the built extension.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/password-generator-extension.git
-   cd password-generator-extension
-   ```
+## Build & Packaging
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Build the extension:
+1. Produce an optimized build:
    ```bash
    npm run build
    ```
-
-4. Load the extension in Chrome:
-   - Open Chrome and navigate to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `dist` folder
-
-The extension will now be available in your Chrome toolbar.
-
-## Development
-
-1. Install dependencies:
+2. Stage assets and manifest for Chrome load:
    ```bash
-   npm install
+   npm run build:dist
    ```
-2. Start development server:
-   ```bash
-   npm run dev
-   ```
-3. Make changes to the source code in the `src` folder
-4. Build for production:
-   ```bash
-   npm run build
-   ```
+   This chains the Vite build with `scripts/copy-assets.js`, copying icons, the manifest, and popup shell into `dist/`.
+3. Load the extension in Chrome:
+   - Navigate to `chrome://extensions/`
+   - Enable Developer mode
+   - Click **Load unpacked** and select the `dist/` directory
 
-## Usage
+Use `npm run preview` for a production-like HTTP preview if you want to smoke test the built bundle without reloading Chrome.
 
-### Getting Started
-1. Click the extension icon in your Chrome toolbar
-2. Choose from three password types using the tabs:
-   - **Random**: Traditional character-based passwords
-   - **Memorable**: Word-based passwords for easier recall
-   - **PIN**: Numeric passwords for simple authentication
+## Available Scripts
 
-### Random Passwords
-1. Adjust password length using the slider (4-50 characters)
-2. Toggle numbers and symbols as needed
-3. When symbols are enabled, choose from symbol sets:
-   - **Basic**: `!@#$%&*+-=?`
-   - **Extended**: `!@#$%^&*()_+-=[]{}|;:,.<>?`
-   - **Safe**: `!@#$%&*+-=?.` (excludes confusing characters)
-   - **Custom**: Enter your own symbols
-4. Click "Refresh password" to generate
-5. Click "Copy password" to copy to clipboard
+- `npm run dev` – Start the Vite development server for the popup UI
+- `npm run build` – Create an optimized production bundle in `dist/`
+- `npm run build:dist` – Build and copy icons + manifest for a ready-to-load Chrome package
+- `npm run preview` – Serve the built bundle locally for manual verification
+- `npm run test` – Execute the Vitest suite in headless JSDOM (`npx vitest --run` for CI parity)
 
-### Memorable Passwords
-1. Select word count (2-6 words)
-2. Toggle capitalization for better memorability
-3. Generate password with common English words and separators
+## Testing Guidance
 
-### PIN Generation
-1. Choose digit length (4-12 digits)
-2. Generate cryptographically secure numeric passwords
-
-### Settings Persistence
-All your preferences (theme, symbol selections, options) are automatically saved and restored between sessions.
-
-## Security Implementation
-
-### Cryptographic Security
-- **Web Crypto API**: Uses `crypto.getRandomValues()` for cryptographically secure random number generation
-- **Rejection Sampling**: Prevents modulo bias by rejecting values that would create uneven distribution
-- **Entropy Calculation**: Password entropy = length × log₂(charset_size)
-- **No Weak Randomness**: No use of `Math.random()` or predictable algorithms
-
-### Password Strength Assessment
-The extension uses a comprehensive scoring system:
-- **Length Factor**: Longer passwords score higher
-- **Character Diversity**: Bonus points for using multiple character types
-- **Entropy Threshold**: Minimum entropy requirements for each strength level
-- **Time-to-Crack**: Realistic estimates assuming 1 billion guesses/second
-
-### Security Best Practices
-- **Local Processing**: All generation happens in the browser, no network requests
-- **No Storage**: Passwords are never stored or logged
-- **Memory Safety**: Generated passwords exist only in component state
-- **Input Validation**: Strict validation of all user inputs
-- **Error Handling**: Graceful handling of crypto API failures
+Vitest specs live beside the implementation in `src/__tests__/`. When adding features:
+- Cover password generator edge cases (length bounds, separator handling, symbol sets)
+- Mock Chrome APIs with helpers from `src/lib/` to keep tests deterministic
+- Run `npx vitest --run` before opening a PR to mirror CI behaviour
 
 ## Project Structure
 
 ```
-password-generator-extension/
+password-ganerator/
 ├── src/
-│   ├── App.jsx                          # Main React component with UI logic
-│   ├── styles/tailwind.css              # Tailwind source and component styles
-│   ├── securePasswordGenerator.js       # Random password generation engine
-│   ├── memorablePasswordGenerator.js    # Word-based password generation
-│   └── storageUtils.js                  # Chrome storage utilities
-├── public/
-│   └── popup.html                       # Extension popup HTML template
-├── dist/
-│   └── popup.css                        # Built CSS included in the extension (generated at build time)
-├── manifest.json                        # Chrome extension manifest (V3)
-├── package.json                         # Dependencies and build scripts
-├── vite.config.js                       # Vite build configuration
-└── README.md                            # This file
+│   ├── App.jsx                       # Popup entry point orchestrating views
+│   ├── popup.jsx                     # Popup bootstrap used by Vite
+│   ├── components/                   # Shared UI primitives (Tailwind helpers, Radix bindings)
+│   ├── hooks/                        # Custom React hooks
+│   ├── lib/                          # Chrome + utility helpers
+│   ├── securePasswordGenerator.js    # Cryptographically secure engine
+│   ├── memorablePasswordGenerator.js # Passphrase generator
+│   ├── storageUtils.js               # Chrome storage abstraction
+│   ├── contentScript.js              # Messaging bridge from popup to page
+│   └── __tests__/                    # Vitest suites mirroring features
+├── contentScript.js                 # Root-level content script for MV3 registration
+├── popup.html                       # Manifest V3 popup shell
+├── icons/                           # Extension icons
+├── scripts/copy-assets.js           # Helper used by build:dist
+├── manifest.json                    # Chrome extension manifest
+├── dist/                            # Build output (generated)
+└── README.md                        # Project documentation
 ```
 
-### Core Components
-- **SecurePasswordGenerator**: Cryptographic random password generation
-- **MemorablePasswordGenerator**: Word-based password creation
-- **StorageManager**: Chrome storage API wrapper with fallbacks
-- **App Component**: Main React UI with state management and persistence
-- **Modern CSS**: Responsive design with CSS custom properties and dark mode
+## Implementation Notes
 
-### Technical Features
-- **React 18**: Modern React with hooks for state management
-- **Vite**: Fast build tool for development and production
-- **Chrome Storage API**: Persistent settings across browser sessions
-- **Web Crypto API**: Cryptographically secure random generation
-- **Lucide Icons**: Beautiful, consistent icon library
-
-## Browser Compatibility
-
-- **Chrome 88+**: Full Manifest V3 support
-- **Edge 88+**: Chromium-based Edge
-- **Brave, Vivaldi**: Other Chromium-based browsers
-- **Requirements**: Web Crypto API and Chrome Storage API support
-
-## Permissions
-
-The extension requires minimal permissions:
-- `storage`: To save user preferences (theme, symbol selections, etc.)
-- `clipboardWrite`: To copy generated passwords to clipboard
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Implement improvements following security best practices
-4. Test thoroughly with different password types
-5. Submit a pull request with clear description
-
-### Development Guidelines
-- Follow React best practices and hooks patterns
-- Maintain cryptographic security standards
-- Add comprehensive error handling
-- Update tests for new functionality
-- Follow existing code style and conventions
-
-## License
-
-MIT License - See [LICENSE](LICENSE) file for details.
-
-## Changelog
-
-### v1.0.0
-- Initial release with three password types
-- Chrome storage persistence
-- Dark mode support with system detection
-- Symbol selection with predefined and custom options
-- Modern UI with Lucide icons
-- Responsive design optimized for extension popup
-- Comprehensive security implementation
+- Keep all random generation inside `securePasswordGenerator.js` and `memorablePasswordGenerator.js`; never downgrade to `Math.random()`.
+- Chrome messaging is split between the root `contentScript.js` and the popup logic in `src/contentScript.js`.
+- Styling prefers Tailwind class composers from `src/components/ui/`; stick with single quotes and 2-space indentation.
 
 ## Privacy & Security
 
-### Privacy
-- **No Data Collection**: Extension doesn't collect or transmit any user data
-- **Local Processing**: All password generation happens locally in the browser
-- **No Analytics**: No tracking, analytics, or telemetry
-- **Settings Only**: Only user preferences are stored using Chrome Storage API
+- No analytics, telemetry, or remote calls – everything runs locally in the browser context
+- User settings (theme, symbol selections, toggles) are the only items stored via Chrome Storage and can be cleared at any time
+- Clipboard writes happen only when explicitly triggered through the copy button
 
-### Security
-- **Cryptographic Standards**: Uses Web Crypto API for secure random generation
-- **No Password Storage**: Generated passwords are never stored or logged
-- **Rejection Sampling**: Eliminates statistical bias in character selection
-- **Input Validation**: Comprehensive validation of all user inputs
-- **Error Handling**: Graceful handling of API failures and edge cases
+## Contributing
+
+1. Fork and create a branch (`git checkout -b feat/amazing-idea`)
+2. Follow project conventions (React hooks naming, lower camelCase utilities, Tailwind helpers)
+3. Add or update tests alongside feature code
+4. Run `npx vitest --run` and, if applicable, `npm run build:dist` to validate the bundle
+5. Submit a PR with intent, manual verification notes, and screenshots/GIFs for UI changes
+
+## License
+
+MIT License. See `LICENSE` (or the repository’s license file) for details.
 
 ## Support
 
-For issues, feature requests, or questions:
-- Open an issue on [GitHub](https://github.com/yourusername/password-generator-extension/issues)
-- Provide detailed steps to reproduce any bugs
-- Include browser version and operating system information
+Open an issue with reproduction steps, browser + OS details, and expected vs. actual behaviour. Feature requests and security reports are welcome via the same channel.
